@@ -1,0 +1,41 @@
+/* src/index.css */
+:root {
+  /* Paleta de Cores (Loot Tier) */
+  --bg-color: #121214; /* O Abismo (Fundo) */
+  --card-bg: #202024; /* Pedra da Masmorra (Cards) */
+  --text-primary: #e1e1e6; /* Pergaminho Claro (Texto) */
+  --text-secondary: #a8a8b3; /* Poeira (Subtítulo) */
+
+  /* Status Colors */
+  --hp-safe: #04d361; /* Verde (Vida Cheia) */
+  --hp-warning: #fba94c; /* Laranja (Cuidado) */
+  --hp-critical: #f75a68; /* Vermelho (Sangramento/Dívida) */
+  --mana-blue: #00b3ff; /* Azul (Recursos extras) */
+  --gold: #ffd700; /* Ouro (Dinheiro) */
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  font-family: "Inter", sans-serif; /* Fonte padrão clean */
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}
+
+/* Utilitários */
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
