@@ -1,9 +1,6 @@
-// src/components/QuestLog/index.jsx
 import React from "react";
 import styles from "./styles.module.css";
-import { Trash2 } from "lucide-react"; // Ícone moderno (se não tiver, use texto "X")
-// Se der erro no lucide-react, rode: npm install lucide-react
-// Ou use um emoji simples: <button>🗑️</button>
+import { Trash2 } from "lucide-react";
 
 // Recebemos a função onDelete aqui
 const QuestLog = ({ transactions, onDelete }) => {
