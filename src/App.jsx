@@ -32,6 +32,7 @@ function App() {
 
     // 2. Cria o objeto da transação
     const novaTransacao = {
+      id: crypto.randomUUID(),
       description: item,
       value: valorGasto,
       category: respostaIA?.category || "Outros", // Pega a categoria que a IA decidiu
@@ -55,6 +56,18 @@ function App() {
       setTransactions([]);
       setFeedback(null);
     }
+  };
+
+  const handleRemove = (id) => {
+    // 1. Achar o item para saber quanto dinheiro devolver ao saldo
+    const itemParaRemover = transactions.find((t) => t.id === id);
+    if (!itemParaRemover) return;
+
+    // 2. Devolve o dinheiro (Cura o dano)
+    setSaldo((old) => old + itemParaRemover.value);
+
+    // 3. Remove da lista (Filtra tudo que NÃO for aquele ID)
+    setTransactions((old) => old.filter((t) => t.id !== id));
   };
 
   return (
@@ -158,7 +171,7 @@ function App() {
       )}
 
       {/* NOVO: HISTÓRICO DE GASTOS */}
-      <QuestLog transactions={transactions} />
+      <QuestLog transactions={transactions} onDelete={handleRemove} />
     </div>
   );
 }

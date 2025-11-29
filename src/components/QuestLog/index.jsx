@@ -1,58 +1,49 @@
+// src/components/QuestLog/index.jsx
 import React from "react";
+import styles from "./styles.module.css";
+import { Trash2 } from "lucide-react"; // Ícone moderno (se não tiver, use texto "X")
+// Se der erro no lucide-react, rode: npm install lucide-react
+// Ou use um emoji simples: <button>🗑️</button>
 
-const QuestLog = ({ transactions }) => {
+// Recebemos a função onDelete aqui
+const QuestLog = ({ transactions, onDelete }) => {
   return (
-    <div style={{ marginTop: "20px" }}>
-      <h2
-        style={{
-          color: "var(--text-secondary)",
-          fontSize: "1.2rem",
-          marginBottom: "10px",
-        }}
-      >
-        📜 Pergaminho de Gastos
-      </h2>
+    <div className={styles.container}>
+      <h2 className={styles.title}>📜 Pergaminho de Gastos</h2>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        {transactions.length === 0 && (
-          <p style={{ color: "#555", fontStyle: "italic" }}>
-            Nenhuma aventura registrada ainda...
-          </p>
-        )}
+      <div className={styles.list}>
+        {/* ... código do empty state ... */}
 
-        {transactions.map((transacao, index) => (
-          <div
-            key={index}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              background: "#202024",
-              padding: "12px",
-              borderRadius: "6px",
-              borderLeft: "4px solid var(--hp-critical)", // Marca vermelha de dano
-            }}
-          >
-            <div>
-              <strong
-                style={{ display: "block", color: "var(--text-primary)" }}
-              >
-                {transacao.description}
-              </strong>
-              <small
-                style={{ color: "var(--text-secondary)", fontSize: "0.8rem" }}
-              >
-                {transacao.category || "Desconhecido"}
-              </small>
+        {transactions.map((transacao) => (
+          <div key={transacao.id || Math.random()} className={styles.questItem}>
+            {/* Informações (Esquerda) */}
+            <div className={styles.itemInfo}>
+              <h4>{transacao.description}</h4>
+              <p>
+                {transacao.category} •{" "}
+                {new Date(transacao.date).toLocaleDateString("pt-BR")}
+              </p>
             </div>
 
-            <span style={{ color: "var(--hp-critical)", fontWeight: "bold" }}>
-              -{" "}
-              {new Intl.NumberFormat("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              }).format(transacao.value)}
-            </span>
+            {/* Valor e Botão (Direita) */}
+            <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
+              <span className={styles.itemValue}>
+                -{" "}
+                {new Intl.NumberFormat("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                }).format(transacao.value)}
+              </span>
+
+              {/* O BOTÃO DELETAR */}
+              <button
+                onClick={() => onDelete(transacao.id)}
+                className={styles.deleteBtn}
+                title="Desfazer gasto"
+              >
+                🗑️
+              </button>
+            </div>
           </div>
         ))}
       </div>
