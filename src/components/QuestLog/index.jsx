@@ -12,7 +12,10 @@ const QuestLog = ({ transactions, onDelete }) => {
         {/* ... código do empty state ... */}
 
         {transactions.map((transacao) => (
-          <div key={transacao.id || Math.random()} className={styles.questItem}>
+          <div
+            key={transacao.id ?? `${transacao.description}-${transacao.date}`}
+            className={styles.questItem}
+          >
             {/* Informações (Esquerda) */}
             <div className={styles.itemInfo}>
               <h4>{transacao.description}</h4>
