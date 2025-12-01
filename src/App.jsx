@@ -1,47 +1,56 @@
-import { useState } from "react"; // useState para coisas temporárias (inputs)
-import usePersistedState from "./hooks/usePersistedState"; // NOSSO HOOK DE SAVE
+import { useState } from "react";
+import usePersistedState from "./hooks/usePersistedState";
 import { askOracle } from "./services/aiOracle";
 import HealthBar from "./components/HealthBar";
-import QuestLog from "./components/QuestLog"; // Importamos a lista
+import QuestLog from "./components/QuestLog";
+import TypeSelector from "./components/TypeSelector";
 
 function App() {
-  // --- ESTADOS COM SAVE GAME (Persistência) ---
-  // Agora usamos usePersistedState em vez de useState
+  // --- ESTADOS (Save Game) ---
   const [saldo, setSaldo] = usePersistedState("@financequest:saldo", 2500);
   const [transactions, setTransactions] = usePersistedState(
     "@financequest:transactions",
     []
   );
 
-  const [meta] = useState(3000); // Meta fixa por enquanto
+  // Estado para controlar se é Gasto (expense) ou Depósito (income)
+  const [transactionType, setTransactionType] = useState("expense");
 
-  // Estados voláteis (Inputs não precisam ser salvos)
+  const [meta] = useState(3000);
+
+  // Estados Temporários (Inputs)
   const [item, setItem] = useState("");
   const [price, setPrice] = useState("");
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState(null);
 
+  // --- AÇÃO PRINCIPAL (Adicionar) ---
   const handleGastar = async () => {
     if (!item || !price) return;
 
     setLoading(true);
-    const valorGasto = parseFloat(price);
+    const valorNumber = parseFloat(price);
 
-    // 1. Invoca a IA
-    const respostaIA = await askOracle(item, valorGasto);
+    // 1. Invoca a IA passando o TIPO da transação
+    const respostaIA = await askOracle(item, valorNumber, transactionType);
 
-    // 2. Cria o objeto da transação
     const novaTransacao = {
       id: crypto.randomUUID(),
       description: item,
-      value: valorGasto,
-      category: respostaIA?.category || "Outros", // Pega a categoria que a IA decidiu
+      value: valorNumber,
+      type: transactionType, // Salvamos se foi income ou expense
+      category: respostaIA?.category || "Outros",
       date: new Date().toISOString(),
     };
 
-    // 3. Atualiza os estados (O Hook salva no localStorage sozinho)
-    setSaldo((oldSaldo) => oldSaldo - valorGasto);
-    setTransactions((oldTransactions) => [novaTransacao, ...oldTransactions]); // Adiciona no topo da lista
+    // 2. MATEMÁTICA RPG:
+    if (transactionType === "expense") {
+      setSaldo((oldSaldo) => oldSaldo - valorNumber); // Dano (Diminui Saldo)
+    } else {
+      setSaldo((oldSaldo) => oldSaldo + valorNumber); // Cura (Aumenta Saldo)
+    }
+
+    setTransactions((oldTransactions) => [novaTransacao, ...oldTransactions]);
 
     setFeedback(respostaIA);
     setLoading(false);
@@ -49,25 +58,28 @@ function App() {
     setPrice("");
   };
 
-  // Função de Reset (Caso você queira começar o jogo do zero)
+  // --- REMOVER ITEM (Desfazer) ---
+  const handleRemove = (id) => {
+    const itemParaRemover = transactions.find((t) => t.id === id);
+    if (!itemParaRemover) return;
+
+    // Lógica Inversa ao deletar:
+    if (itemParaRemover.type === "expense") {
+      setSaldo((old) => old + itemParaRemover.value); // Devolve o dinheiro
+    } else {
+      setSaldo((old) => old - itemParaRemover.value); // Retira o dinheiro extra
+    }
+
+    setTransactions((old) => old.filter((t) => t.id !== id));
+  };
+
+  // --- RESET TOTAL ---
   const handleReset = () => {
-    if (confirm("Tem certeza que quer deletar seu Save?")) {
+    if (confirm("Tem a certeza que quer apagar o Save Game?")) {
       setSaldo(2500);
       setTransactions([]);
       setFeedback(null);
     }
-  };
-
-  const handleRemove = (id) => {
-    // 1. Achar o item para saber quanto dinheiro devolver ao saldo
-    const itemParaRemover = transactions.find((t) => t.id === id);
-    if (!itemParaRemover) return;
-
-    // 2. Devolve o dinheiro (Cura o dano)
-    setSaldo((old) => old + itemParaRemover.value);
-
-    // 3. Remove da lista (Filtra tudo que NÃO for aquele ID)
-    setTransactions((old) => old.filter((t) => t.id !== id));
   };
 
   return (
@@ -89,8 +101,10 @@ function App() {
             top: 0,
             right: 0,
             background: "transparent",
-            color: "#555",
+            color: "#666",
             fontSize: "0.8rem",
+            cursor: "pointer",
+            border: "none",
           }}
         >
           🗑️ Reset Save
@@ -99,58 +113,72 @@ function App() {
 
       <HealthBar current={saldo} max={meta} />
 
-      {/* ÁREA DE INPUTS (Manteve igual) */}
+      {/* ÁREA DE COMBATE */}
       <div
         style={{
           backgroundColor: "var(--card-bg)",
           padding: "20px",
           borderRadius: "8px",
-          display: "flex",
-          gap: "10px",
-          flexWrap: "wrap",
           marginBottom: "20px",
         }}
       >
-        <input
-          placeholder="Nome do Item"
-          value={item}
-          onChange={(e) => setItem(e.target.value)}
-          style={{
-            flex: 1,
-            padding: "12px",
-            borderRadius: "4px",
-            border: "none",
-            background: "#121214",
-            color: "white",
-          }}
-        />
-        <input
-          type="number"
-          placeholder="R$"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          style={{
-            width: "100px",
-            padding: "12px",
-            borderRadius: "4px",
-            border: "none",
-            background: "#121214",
-            color: "white",
-          }}
-        />
-        <button
-          onClick={handleGastar}
-          disabled={loading}
-          style={{
-            padding: "0 24px",
-            borderRadius: "4px",
-            background: loading ? "#555" : "var(--mana-blue)",
-            color: "white",
-            fontWeight: "bold",
-          }}
-        >
-          {loading ? "⚔️" : "Lançar"}
-        </button>
+        {/* SELETOR (Botões Dano vs Cura) */}
+        <TypeSelector type={transactionType} setType={setTransactionType} />
+
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+          <input
+            placeholder="Nome do Item (Ex: Salário, Pizza...)"
+            value={item}
+            onChange={(e) => setItem(e.target.value)}
+            style={{
+              flex: 1,
+              padding: "12px",
+              borderRadius: "4px",
+              border: "none",
+              background: "#121214",
+              color: "white",
+            }}
+          />
+          <input
+            type="number"
+            placeholder="R$"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            style={{
+              width: "100px",
+              padding: "12px",
+              borderRadius: "4px",
+              border: "none",
+              background: "#121214",
+              color: "white",
+            }}
+          />
+          <button
+            onClick={handleGastar}
+            disabled={loading}
+            style={{
+              padding: "0 24px",
+              borderRadius: "4px",
+              border: "none",
+              cursor: "pointer",
+              // Muda a cor do botão dependendo do tipo
+              background: loading
+                ? "#555"
+                : transactionType === "expense"
+                ? "var(--hp-critical)"
+                : "var(--hp-safe)",
+              color: "white",
+              fontWeight: "bold",
+              transition: "background 0.3s",
+            }}
+          >
+            {loading
+              ? "Invocando..."
+              : transactionType === "expense"
+              ? "Atacar ⚔️"
+              : "Curar ❤️"}
+          </button>
+        </div>
       </div>
 
       {/* FEEDBACK IA */}
@@ -164,13 +192,13 @@ function App() {
             borderRadius: "6px",
           }}
         >
-          <p style={{ color: "var(--gold)", fontStyle: "italic" }}>
+          <p style={{ color: "var(--gold)", fontStyle: "italic", margin: 0 }}>
             🧙‍♂️ Oráculo: "{feedback.message}"
           </p>
         </div>
       )}
 
-      {/* NOVO: HISTÓRICO DE GASTOS */}
+      {/* HISTÓRICO */}
       <QuestLog transactions={transactions} onDelete={handleRemove} />
     </div>
   );
