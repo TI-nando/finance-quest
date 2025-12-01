@@ -8,18 +8,26 @@ if (!API_KEY) {
 
 const genAI = new GoogleGenerativeAI(API_KEY);
 
-export const askOracle = async (description, value) => {
+export const askOracle = async (description, value, type) => {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `
-      Atue como um Narrador de RPG Medieval.
-      O jogador gastou R$ ${value} com: "${description}".
+      Atue como um Mago Sábio de RPG Medieval.
+      O jogador registrou uma transação do tipo: "${
+        type === "income" ? "GANHO DE OURO (Cura)" : "GASTO DE OURO (Dano)"
+      }".
+      Descrição: "${description}"
+      Valor: R$ ${value}
+
+      Sua missão:
+      1. Se for GASTO: Classifique (Taverna, Equipamento, Taxa) e dê uma bronca sarcástica ou alerta.
+      2. Se for GANHO: Classifique (Saque de Masmorra, Recompensa de Quest, Salário do Rei) e parabenize o jogador.
       
-      Responda APENAS um JSON neste formato:
+      Responda APENAS um JSON:
       {
-        "category": "Classifique o gasto (ex: Taverna, Equipamento, Taxa)",
-        "message": "Um conselho curto e engraçado sobre esse gasto"
+        "category": "Classificação RPG",
+        "message": "Seu comentário aqui"
       }
     `;
 
