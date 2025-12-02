@@ -4,10 +4,12 @@ import { askOracle } from "./services/aiOracle";
 import HealthBar from "./components/HealthBar";
 import QuestLog from "./components/QuestLog";
 import TypeSelector from "./components/TypeSelector";
+import LevelBar from "./components/LevelBar";
 
 function App() {
   // --- ESTADOS (Save Game) ---
   const [saldo, setSaldo] = usePersistedState("@financequest:saldo", 2500);
+  const [xp, setXp] = usePersistedState("@financequest:xp", 0);
   const [transactions, setTransactions] = usePersistedState(
     "@financequest:transactions",
     []
@@ -15,7 +17,6 @@ function App() {
 
   // Estado para controlar se é Gasto (expense) ou Depósito (income)
   const [transactionType, setTransactionType] = useState("expense");
-
   const [meta] = useState(3000);
 
   // Estados Temporários (Inputs)
@@ -38,12 +39,21 @@ function App() {
       id: crypto.randomUUID(),
       description: item,
       value: valorNumber,
-      type: transactionType, // Salvamos se foi income ou expense
+      type: transactionType,
       category: respostaIA?.category || "Outros",
       date: new Date().toISOString(),
     };
 
-    // 2. MATEMÁTICA RPG:
+    // Ganho de XP
+    let xpGanho = 0;
+
+    if (transactionType === "income") {
+      xpGanho = 10; // XP GANHO POR REGISTRAR (MUDA O XP)
+    }
+    setXp((old) => old + xpGanho);
+
+    // Atualiza o saldo
+
     if (transactionType === "expense") {
       setSaldo((oldSaldo) => oldSaldo - valorNumber); // Dano (Diminui Saldo)
     } else {
@@ -58,12 +68,12 @@ function App() {
     setPrice("");
   };
 
-  // --- REMOVER ITEM (Desfazer) ---
+  // --- REMOVE TRANSAÇÃO ---
   const handleRemove = (id) => {
     const itemParaRemover = transactions.find((t) => t.id === id);
     if (!itemParaRemover) return;
 
-    // Lógica Inversa ao deletar:
+    // Remove Dinheiro e XP
     if (itemParaRemover.type === "expense") {
       setSaldo((old) => old + itemParaRemover.value); // Devolve o dinheiro
     } else {
@@ -73,7 +83,7 @@ function App() {
     setTransactions((old) => old.filter((t) => t.id !== id));
   };
 
-  // --- RESET TOTAL ---
+  // --- RESETA TUDO ---
   const handleReset = () => {
     if (confirm("Tem a certeza que quer apagar o Save Game?")) {
       setSaldo(2500);
@@ -110,9 +120,8 @@ function App() {
           🗑️ Reset Save
         </button>
       </header>
-
-      <HealthBar current={saldo} max={meta} />
-
+      <LevelBar currentXP={xp} /> // Barra de Nivel
+      <HealthBar current={saldo} max={meta} /> // Barra de Saldo
       {/* ÁREA DE COMBATE */}
       <div
         style={{
@@ -180,7 +189,6 @@ function App() {
           </button>
         </div>
       </div>
-
       {/* FEEDBACK IA */}
       {feedback && (
         <div
@@ -197,7 +205,6 @@ function App() {
           </p>
         </div>
       )}
-
       {/* HISTÓRICO */}
       <QuestLog transactions={transactions} onDelete={handleRemove} />
     </div>
