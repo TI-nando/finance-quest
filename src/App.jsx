@@ -8,7 +8,7 @@ import LevelBar from "./components/LevelBar";
 
 function App() {
   // --- ESTADOS (Save Game) ---
-  const [saldo, setSaldo] = usePersistedState("@financequest:saldo", 2500);
+  const [saldo, setSaldo] = usePersistedState("@financequest:saldo", 0);
   const [xp, setXp] = usePersistedState("@financequest:xp", 0);
   const [transactions, setTransactions] = usePersistedState(
     "@financequest:transactions",
@@ -17,7 +17,7 @@ function App() {
 
   // Estado para controlar se é Gasto (expense) ou Depósito (income)
   const [transactionType, setTransactionType] = useState("expense");
-  const [meta] = useState(3000);
+  const [meta] = useState(30000); // Definir o maximo de saldo.
 
   // Estados Temporários (Inputs)
   const [item, setItem] = useState("");
@@ -48,7 +48,7 @@ function App() {
     let xpGanho = 0;
 
     if (transactionType === "income") {
-      xpGanho = 10; // XP GANHO POR REGISTRAR (MUDA O XP)
+      xpGanho = 100; // XP GANHO POR REGISTRAR (MUDA O XP)
     }
     setXp((old) => old + xpGanho);
 
@@ -86,7 +86,7 @@ function App() {
   // --- RESETA TUDO ---
   const handleReset = () => {
     if (confirm("Tem a certeza que quer apagar o Save Game?")) {
-      setSaldo(2500);
+      setSaldo(0);
       setTransactions([]);
       setFeedback(null);
     }
@@ -120,8 +120,8 @@ function App() {
           🗑️ Reset Save
         </button>
       </header>
-      <LevelBar currentXP={xp} /> // Barra de Nivel
-      <HealthBar current={saldo} max={meta} /> // Barra de Saldo
+      <LevelBar currentXP={xp} /> {/* Barra de XP */}
+      <HealthBar current={saldo} max={meta} /> {/* Barra de Saldo */}
       {/* ÁREA DE COMBATE */}
       <div
         style={{
@@ -184,7 +184,7 @@ function App() {
             {loading
               ? "Invocando..."
               : transactionType === "expense"
-              ? "Atacar ⚔️"
+              ? "Pagar ⚔️"
               : "Curar ❤️"}
           </button>
         </div>
