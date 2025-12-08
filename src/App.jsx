@@ -5,6 +5,7 @@ import HealthBar from "./components/HealthBar";
 import QuestLog from "./components/QuestLog";
 import TypeSelector from "./components/TypeSelector";
 import LevelBar from "./components/LevelBar";
+import BossCard from "./components/BossCard";
 
 function App() {
   // --- ESTADOS (Save Game) ---
@@ -14,10 +15,12 @@ function App() {
     "@financequest:transactions",
     []
   );
+  // Estado do Boss (Meta Financeira)
+  const [boss, setBoss] = usePersistedState("@financequest:boss", null);
 
   // Estado para controlar se é Gasto (expense) ou Depósito (income)
   const [transactionType, setTransactionType] = useState("expense");
-  const [meta] = useState(30000); // Definir o maximo de saldo.
+  const [meta] = useState(30000); // Meta Máxima (Max HP)
 
   // Estados Temporários (Inputs)
   const [item, setItem] = useState("");
@@ -32,7 +35,7 @@ function App() {
     setLoading(true);
     const valorNumber = parseFloat(price);
 
-    // 1. Invoca a IA passando o TIPO da transação
+    // 1. Invoca a IA
     const respostaIA = await askOracle(item, valorNumber, transactionType);
 
     const novaTransacao = {
@@ -44,20 +47,20 @@ function App() {
       date: new Date().toISOString(),
     };
 
-    // Ganho de XP
+    // 2. Ganho de XP
     let xpGanho = 0;
-
     if (transactionType === "income") {
-      xpGanho = 100; // XP GANHO POR REGISTRAR (MUDA O XP)
+      xpGanho = Math.floor(valorNumber); // 1 XP por Real ganho
+    } else {
+      xpGanho = 10; // 10 XP fixo por despesa registrada
     }
     setXp((old) => old + xpGanho);
 
-    // Atualiza o saldo
-
+    // 3. Atualiza o saldo
     if (transactionType === "expense") {
-      setSaldo((oldSaldo) => oldSaldo - valorNumber); // Dano (Diminui Saldo)
+      setSaldo((oldSaldo) => oldSaldo - valorNumber); // Dano
     } else {
-      setSaldo((oldSaldo) => oldSaldo + valorNumber); // Cura (Aumenta Saldo)
+      setSaldo((oldSaldo) => oldSaldo + valorNumber); // Cura
     }
 
     setTransactions((oldTransactions) => [novaTransacao, ...oldTransactions]);
@@ -68,26 +71,43 @@ function App() {
     setPrice("");
   };
 
-  // --- REMOVE TRANSAÇÃO ---
+  // --- REMOVE TRANSAÇÃO (Desfazer) ---
   const handleRemove = (id) => {
     const itemParaRemover = transactions.find((t) => t.id === id);
     if (!itemParaRemover) return;
 
-    // Remove Dinheiro e XP
+    // Remove Dinheiro e XP (Correção do Glitch de XP Infinito)
     if (itemParaRemover.type === "expense") {
-      setSaldo((old) => old + itemParaRemover.value); // Devolve o dinheiro
+      setSaldo((old) => old + itemParaRemover.value);
+      setXp((old) => Math.max(0, old - 10)); // Remove os 10 XP ganhos
     } else {
-      setSaldo((old) => old - itemParaRemover.value); // Retira o dinheiro extra
+      setSaldo((old) => old - itemParaRemover.value);
+      setXp((old) => Math.max(0, old - Math.floor(itemParaRemover.value))); // Remove o XP proporcional
     }
 
     setTransactions((old) => old.filter((t) => t.id !== id));
+  };
+
+  // --- Função para invocar Boss ---
+  const handleCreateBoss = () => {
+    const name = prompt("Qual o nome do Monstro (Meta)? EX: Viagem, Carro...");
+    if (!name) return;
+
+    const costStr = prompt("Quantos pontos de vida (Valor R$) ele tem?");
+    const cost = parseFloat(costStr);
+    if (isNaN(cost) || cost <= 0)
+      return alert("O monstro precisa de vida > 0!");
+
+    setBoss({ name, cost });
   };
 
   // --- RESETA TUDO ---
   const handleReset = () => {
     if (confirm("Tem a certeza que quer apagar o Save Game?")) {
       setSaldo(0);
+      setXp(0);
       setTransactions([]);
+      setBoss(null);
       setFeedback(null);
     }
   };
@@ -120,8 +140,20 @@ function App() {
           🗑️ Reset Save
         </button>
       </header>
-      <LevelBar currentXP={xp} /> {/* Barra de XP */}
-      <HealthBar current={saldo} max={meta} /> {/* Barra de Saldo */}
+
+      {/* Barra de XP */}
+      <LevelBar currentXP={xp} />
+
+      {/* Área do Boss */}
+      <BossCard
+        boss={boss}
+        currentSavings={saldo}
+        onCreateBoss={handleCreateBoss}
+      />
+
+      {/* CORREÇÃO: Props renomeadas de saldo/meta para current/max */}
+      <HealthBar current={saldo} max={meta} />
+
       {/* ÁREA DE COMBATE */}
       <div
         style={{
@@ -189,6 +221,7 @@ function App() {
           </button>
         </div>
       </div>
+
       {/* FEEDBACK IA */}
       {feedback && (
         <div
@@ -205,6 +238,7 @@ function App() {
           </p>
         </div>
       )}
+
       {/* HISTÓRICO */}
       <QuestLog transactions={transactions} onDelete={handleRemove} />
     </div>
